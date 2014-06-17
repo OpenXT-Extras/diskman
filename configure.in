@@ -1,0 +1,170 @@
+dnl
+dnl
+dnl configure.in.head:
+dnl
+dnl
+dnl $Id:$
+dnl
+dnl $Log:$
+dnl
+dnl
+dnl
+
+dnl
+dnl Copyright (c) 2012 Citrix Systems, Inc.
+dnl 
+dnl This program is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation; either version 2 of the License, or
+dnl (at your option) any later version.
+dnl 
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl 
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+dnl
+
+AC_PREREQ(2.63)
+AC_INIT
+AC_CONFIG_SRCDIR([src/diskman.c])
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+AC_PROG_AWK
+AC_CHECK_PROG(MD5SUM,md5sum,md5sum)
+AC_CHECK_PROG(GREP,grep,grep)
+
+AC_SYS_LARGEFILE
+
+DISKMAN_MAJOR_VERSION=`cat $srcdir/version-major`
+DISKMAN_MINOR_VERSION=`cat $srcdir/version-minor`
+DISKMAN_MICRO_VERSION=`cat $srcdir/version-micro`
+
+
+DISKMAN_VERSION=$DISKMAN_MAJOR_VERSION.$DISKMAN_MINOR_VERSION.$DISKMAN_MICRO_VERSION
+
+AC_SUBST(DISKMAN_MAJOR_VERSION)
+AC_SUBST(DISKMAN_MINOR_VERSION)
+AC_SUBST(DISKMAN_MICRO_VERSION)
+AC_SUBST(DISKMAN_VERSION)
+
+
+VERSION=$DISKMAN_VERSION
+PACKAGE=diskman
+
+AM_INIT_AUTOMAKE($PACKAGE,$VERSION)
+
+
+AC_CONFIG_HEADERS([src/config.h])
+
+# Checks for header files.
+AC_CHECK_HEADERS([malloc.h])
+AC_HEADER_STDC
+AC_FUNC_MALLOC
+
+AC_C_INLINE
+AC_C_CONST
+
+AC_SYS_LARGEFILE
+
+#PKG_CHECK_MODULE([LIBXCIDC],[libxcidc])
+
+# libsurfman
+
+LIBSURFMAN_CONFIG=no
+AC_ARG_WITH(libsurfman,
+        AS_HELP_STRING([--with-libsurfman=PATH],[Path to libsurfman-config]),
+                LIBSURFMAN_CONFIG=$with_libsurfman,LIBSURFMAN_CONFIG=no)
+
+case "x$LIBSURFMAN_CONFIG" in
+        xno)
+		AC_PATH_PROG(LIBSURFMAN_CONFIG, libsurfman-config, no)
+        ;;
+        x|xyes)
+		AC_PATH_PROG(LIBSURFMAN_CONFIG, libsurfman-config, no)
+        ;;
+        *)
+        ;;
+esac
+
+if ! test -x $LIBSURFMAN_CONFIG; then
+#  PKG_CHECK_MODULES([LIBSURFMAN], [libsurfman])
+  LIBSURFMAN_INC="$LIBSURFMAN_CFLAGS"
+  LIBSURFMAN_LIB="$LIBSURFMAN_LIBS"
+else
+  LIBSURFMAN_INC=`$LIBSURFMAN_CONFIG --cflags`
+  LIBSURFMAN_LIB=`$LIBSURFMAN_CONFIG --libs`
+fi
+
+LIBXCIDC_INC=`/usr/bin/libxcidc-config --cflags`
+LIBXCIDC_LIB=`/usr/bin/libxcidc-config --libs`
+
+LIBDMBUS_INC=`/usr/bin/libdmbus-config --cflags`
+LIBDMBUS_LIB=`/usr/bin/libdmbus-config --libs`
+
+AC_SUBST(LIBSURFMAN_INC)
+AC_SUBST(LIBSURFMAN_LIB)
+AC_SUBST(LIBDMBUS_LIB)
+
+# libdmbus
+
+AC_ARG_WITH([libdmbus],
+            AC_HELP_STRING([--with-libdmbus=PATH], [Path to prefix where libdmbus was installed.]),
+            [LIBDMBUS_PREFIX=$with_libdmbus], [])
+
+case "x$LIBDMBUS_PREFIX" in
+        x|xno|xyes)
+                LIBDMBUS_INC=""
+                LIBDMBUS_LIB="-ldmbus"
+                ;;
+        *)
+                LIBDMBUS_INC="-I${LIBDMBUS_PREFIX}/include"
+                LIBDMBUS_LIB="-L${LIBDMBUS_PREFIX}/lib -ldmbus"
+                ;;
+esac
+
+AC_SUBST(LIBDMBUS_INC)
+AC_SUBST(LIBDMBUS_LIB)
+
+have_libdmbus=true
+
+AC_ARG_WITH(libxc,
+            AC_HELP_STRING([--with-libxc=PATH],
+                           [Path to prefix where where libxc and xen were installed]),
+            LIBXC_PREFIX=$with_libxc, [])
+
+case "x$LIBXC_PREFIX" in
+        x|xno)
+                LIBXC_INC=""
+                LIBXC_LIB="-lxenctrl"
+                ;;
+        xyes)
+                LIB_SWITCH="xenctrl"
+                LIBXC_INC=""
+                LIBXC_LIB="-lxenctrl"
+                ;;
+        *)
+                LIB_SWITCH="xenctrl"
+                LIBXC_INC="-I${LIBXC_PREFIX}/include"
+                LIBXC_LIB="-L${LIBXC_PREFIX}/lib -lxenctrl"
+                ;;
+esac
+
+AC_SUBST(LIBXC_INC)
+AC_SUBST(LIBXC_LIB)
+
+have_libxenctrl=true
+
+
+AC_CONFIG_FILES([Makefile
+	   src/Makefile])
+AC_OUTPUT
+
